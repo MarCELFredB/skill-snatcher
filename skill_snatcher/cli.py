@@ -131,3 +131,29 @@ def grab(url: str, skills_dir: str | None, force: bool, dry_run: bool, verbose: 
         sys.exit(130)
     finally:
         cleanup_temp_dir(temp_dir)
+
+
+@cli.command()
+@click.argument("queue_file", type=click.Path())
+@click.option("--skills-dir", type=click.Path(), default=None, help="Custom skills directory.")
+@click.option("--interval", default=10, help="Seconds between checks (default: 10).")
+@click.option("--force", is_flag=True, help="Overwrite existing skills.")
+@click.option("--dry-run", is_flag=True, help="Show what would be installed without installing.")
+def watch(queue_file: str, skills_dir: str | None, interval: int, force: bool, dry_run: bool):
+    """Watch a text file for new Instagram URLs and auto-process them.
+
+    Point QUEUE_FILE at your Google Drive sync'd file, e.g.:
+
+        skill-snatcher watch ~/Google\\ Drive/skill-urls.txt
+    """
+    from pathlib import Path
+    from .watcher import watch as run_watcher
+
+    skills_path = Path(skills_dir) if skills_dir else get_skills_dir()
+    run_watcher(
+        queue_path=Path(queue_file),
+        skills_dir=skills_path,
+        interval=interval,
+        force=force,
+        dry_run=dry_run,
+    )

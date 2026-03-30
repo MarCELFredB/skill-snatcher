@@ -109,6 +109,62 @@ ollama pull llama3.2:3b
 
 **First run is slow** — The whisper model (~150 MB) downloads automatically on first use. Subsequent runs use the cached model.
 
+## Phone-to-Laptop Setup (Android + Google Drive)
+
+Save Instagram reel URLs from your phone, and your laptop auto-installs the skills.
+
+### Step 1: Create the queue file
+
+Create a file called `skill-urls.txt` in your Google Drive. You can do this from your phone or laptop — just make sure Google Drive syncs it to both devices.
+
+### Step 2: Android Share Shortcut
+
+Install [**HTTP Shortcuts**](https://play.google.com/store/apps/details?id=ch.rmy.android.http_shortcuts) (free, open source) on your Android phone, then:
+
+1. Open the app → tap **+** → **Regular Shortcut**
+2. Set **Name** to "Save Skill URL"
+3. Under **Scripting** → **Run before execution**, add:
+   ```js
+   const url = getVariable("sharing_text");
+   const file = "/storage/emulated/0/Google Drive/skill-urls.txt";
+   // Appends the URL on a new line
+   writeFile(file, readFile(file) + url + "\n");
+   showToast("Skill URL saved!");
+   ```
+4. Alternatively, use **Tasker** or **Automate**:
+   - Trigger: Share intent received (text)
+   - Action: Write File → append `%CLIP` to `Google Drive/skill-urls.txt`
+
+**Simplest option** — just open the Google Drive file on your phone and paste the URL manually. It still syncs automatically.
+
+### Step 3: Start the watcher on your laptop
+
+```bash
+# Point to your Google Drive sync'd file
+skill-snatcher watch "~/Google Drive/skill-urls.txt"
+
+# With options
+skill-snatcher watch "~/Google Drive/skill-urls.txt" --interval 30 --dry-run
+```
+
+The watcher checks for new URLs every 10 seconds (configurable). When it finds one, it downloads, transcribes, extracts, and installs the skill automatically. Processed URLs are marked `[done]` so they aren't reprocessed.
+
+### How it works
+
+```
+Phone                          Google Drive              Laptop
+┌──────────┐    share/paste    ┌──────────────┐   sync   ┌─────────────────┐
+│ Instagram │ ──────────────→  │skill-urls.txt│ ──────→  │ skill-snatcher  │
+│   Reel    │                  │              │          │   watch         │
+└──────────┘                   └──────────────┘          └────────┬────────┘
+                                                                  │
+                                                         download → transcribe
+                                                         → extract → install
+                                                                  │
+                                                                  ▼
+                                                         ~/.claude/skills/
+```
+
 ## License
 
 MIT
